@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Assessment - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Educational Cognitive Assessment</h3>
+                <p class="text-secondary small mb-0">Multi-domain screening protocol: Memory, Attention, Orientation, Language, and Reasoning.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('cognitive.history') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Assessment History
+                </a>
+            </div>
+        </div>
+
+        <!-- Dynamic Adaptive Question Notice -->
+        <div class="card card-clinical p-3 mb-3 border-start border-4 border-success bg-light">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon icon-green">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div>
+                    <span class="badge bg-success text-white fw-bold me-2">Fresh Randomized Challenge Active</span>
+                    <span class="small fw-semibold text-navy" style="color: #0f2942;">
+                        Procedurally Generated Cognitive Items
+                    </span>
+                    <p class="text-muted small mb-0 mt-1">
+                        Every single time you take this assessment, the system generates completely unique words, numbers, and puzzles across all 5 domains. This enables you to test as many times as you like each day to monitor real cognitive progress without memorizing past answers!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker Bar -->
+        <div class="card card-clinical p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold text-secondary" id="stepCounter">Question 1 of {{ questions|length }}</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" id="domainBadge">
+                    Domain: {{ questions[0].domain }}
+                </span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-primary" id="progressBar" role="progressbar" style="width: {{ (1 / questions|length * 100)|round }}%;"></div>
+            </div>
+        </div>
+
+        <!-- Questionnaire Stepper Form -->
+        <form method="POST" action="{{ url_for('cognitive.submit') }}" id="cogForm">
+            {% for q in questions %}
+                <div class="question-step card card-clinical p-4 mb-4 {% if not loop.first %}d-none{% endif %}" id="step-{{ loop.index0 }}" data-domain="{{ q.domain }}">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="badge bg-secondary-subtle text-secondary px-2 py-1">Q{{ q.id }}</span>
+                        <h5 class="fw-bold text-navy mb-0" style="color: #0f2942;">{{ q.title }}</h5>
+                    </div>
+
+                    <p class="fs-6 text-dark mb-4 p-3 bg-light rounded border">
+                        {{ q.prompt }}
+                    </p>
+
+                    <div class="options-group mb-4">
+                        {% for opt in q.options %}
+                            <div class="form-check p-3 border rounded mb-2 option-card" onclick="selectRadio(this)">
+                                <input class="form-check-input ms-1 me-2" type="radio" name="q_{{ q.id }}" id="q{{ q.id }}_opt{{ loop.index0 }}" value="{{ opt }}" required>
+                                <label class="form-check-label w-100 fw-medium text-secondary" for="q{{ q.id }}_opt{{ loop.index0 }}">
+                                    {{ opt }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Navigation Controls -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <button type="button" class="btn btn-outline-secondary prev-btn" onclick="prevStep({{ loop.index0 }})" {% if loop.first %}disabled{% endif %}>
+                            &larr; Previous Question
+                        </button>
+
+                        {% if loop.last %}
+                            <button type="submit" class="btn btn-success px-4" id="submitBtn">
+                                <i class="fa-solid fa-check-double me-1"></i> Submit Assessment & Score &rarr;
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-clinical-primary px-4 next-btn" onclick="nextStep({{ loop.index0 }})">
+                                Next Question &rarr;
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const totalQuestions = {{ questions|length }};
+let currentStep = 0;
+
+function selectRadio(card) {
+    const radio = card.querySelector('input[type="radio"]');
+    if (radio) {
+        radio.checked = true;
+        // Highlight active card
+        const parent = card.closest('.options-group');
+        parent.querySelectorAll('.option-card').forEach(c => c.classList.remove('border-primary', 'bg-primary-subtle'));
+        card.classList.add('border-primary', 'bg-primary-subtle');
+    }
+}
+
+function updateProgress(step) {
+    currentStep = step;
+    const pct = Math.round(((step + 1) / totalQuestions) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('stepCounter').textContent = `Question ${step + 1} of ${totalQuestions} (${pct}%)`;
+
+    const activeStepEl = document.getElementById(`step-${step}`);
+    if (activeStepEl) {
+        const domain = activeStepEl.getAttribute('data-domain');
+        document.getElementById('domainBadge').textContent = `Domain: ${domain}`;
+    }
+}
+
+function nextStep(step) {
+    // Validate that current question has a selection
+    const activeStepEl = document.getElementById(`step-${step}`);
+    const selected = activeStepEl.querySelector('input[type="radio"]:checked');
+    if (!selected) {
+        alert("Please select an answer to proceed.");
+        return;
+    }
+
+    activeStepEl.classList.add('d-none');
+    const nextEl = document.getElementById(`step-${step + 1}`);
+    if (nextEl) {
+        nextEl.classList.remove('d-none');
+        updateProgress(step + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function prevStep(step) {
+    if (step <= 0) return;
+    const activeStepEl = document.getElementById(`step-${step}`);
+    activeStepEl.classList.add('d-none');
+    const prevEl = document.getElementById(`step-${step - 1}`);
+    if (prevEl) {
+        prevEl.classList.remove('d-none');
+        updateProgress(step - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+</script>
+<style>
+.option-card {
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+.option-card:hover {
+    background-color: #f0f9ff;
+    border-color: #0284c7;
+}
+</style>
+{% endblock %}

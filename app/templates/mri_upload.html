@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Upload MRI Scan - Alzheimer's Diagnostic Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Upload Brain MRI Scan</h3>
+                <p class="text-secondary small mb-0">Upload an axial structural MRI scan (JPG, JPEG, or PNG) for 4-class CNN classification and Grad-CAM explainability.</p>
+            </div>
+            <a href="{{ url_for('mri.history') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i> Scan History
+            </a>
+        </div>
+
+        <!-- Upload Form Card -->
+        <div class="card card-clinical p-4 mb-4">
+            <form method="POST" action="{{ url_for('mri.upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-dropzone mb-3" id="dropArea" onclick="document.getElementById('mri_file').click()">
+                    <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                    <h5 class="fw-bold mb-1">Click to select MRI file or drag and drop</h5>
+                    <p class="text-muted small mb-3">Accepted formats: JPG, JPEG, PNG (Max file size: 16 MB)</p>
+                    <input type="file" name="mri_file" id="mri_file" class="d-none" accept=".jpg,.jpeg,.png" required onchange="handleFileSelect(this)">
+                    <button type="button" class="btn btn-clinical-outline btn-sm">Browse Files</button>
+                </div>
+
+                <!-- Live Preview Container -->
+                <div id="previewContainer" class="d-none text-center p-3 bg-light rounded border mb-3">
+                    <span class="small fw-semibold text-secondary d-block mb-2">Image Preview:</span>
+                    <img id="imagePreview" src="#" alt="Preview" class="img-fluid rounded border shadow-sm" style="max-height: 220px;">
+                    <div class="mt-2">
+                        <span id="previewFilename" class="badge bg-secondary"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2">
+                    <span class="text-muted small"><i class="fa-solid fa-shield-halved me-1"></i> Image preprocessed & normalized automatically</span>
+                    <button type="submit" class="btn btn-clinical-primary px-4 py-2" id="submitBtn">
+                        <i class="fa-solid fa-brain me-1"></i> Run Neural Classification &rarr;
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sample Demonstration Scans Card -->
+        <div class="card card-clinical">
+            <div class="card-header card-header-clean">
+                <i class="fa-solid fa-flask-vial text-primary me-2"></i> Quick Test Reference Samples
+            </div>
+            <div class="card-body">
+                <p class="text-secondary small mb-3">
+                    You can inspect these typical axial structural MRI scan profiles across all four Alzheimer stages:
+                </p>
+                <div class="row g-3 text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge badge-nondemented w-100 mb-1">Non-Demented</span>
+                            <div class="small text-muted py-2">Healthy volumetric cortical margins, intact gyri</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge badge-verymild w-100 mb-1">Very Mild</span>
+                            <div class="small text-muted py-2">Early hippocampal volume reduction</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge badge-mild w-100 mb-1">Mild Demented</span>
+                            <div class="small text-muted py-2">Ventricular dilation & temporal lobe thinning</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge badge-moderate w-100 mb-1">Moderate Demented</span>
+                            <div class="small text-muted py-2">Severe ventricular expansion & cortical atrophy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('previewFilename').textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+            document.getElementById('previewContainer').classList.remove('d-none');
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+// Drag & drop handlers
+const dropArea = document.getElementById('dropArea');
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.classList.add('bg-white', 'border-primary');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('bg-white', 'border-primary');
+    }, false);
+});
+
+dropArea.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+        document.getElementById('mri_file').files = files;
+        handleFileSelect(document.getElementById('mri_file'));
+    }
+}, false);
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Medical PDF Reports - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Generated Medical PDF Reports</h3>
+        <p class="text-secondary small mb-0">Multi-page clinical reports integrating MRI findings, Grad-CAM attention overlays, cognitive domain breakdown, and clinician sign-off blocks.</p>
+    </div>
+    <a href="{{ url_for('reports.generate') }}" class="btn btn-clinical-primary btn-sm">
+        <i class="fa-solid fa-file-pdf me-1"></i> Generate New Report
+    </a>
+</div>
+
+<div class="card card-clinical">
+    <div class="card-header card-header-clean">
+        <i class="fa-solid fa-file-lines text-primary me-2"></i> Report Documents ({{ reports|length }})
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Report ID</th>
+                    <th>Document Name</th>
+                    <th>Generation Timestamp</th>
+                    <th class="text-end pe-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reports %}
+                    {% for r in reports %}
+                        <tr>
+                            <td class="ps-3 fw-semibold text-secondary">#{{ r.report_id }}</td>
+                            <td class="fw-bold text-navy">
+                                <i class="fa-regular fa-file-pdf text-danger me-2"></i>
+                                {{ r.report_path.split('/')[-1] }}
+                            </td>
+                            <td class="small">{{ r.generated_at.strftime('%Y-%m-%d %H:%M') if r.generated_at else 'N/A' }}</td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('reports.download', filename=r.report_path.split('/')[-1]) }}" class="btn btn-sm btn-clinical-outline">
+                                    <i class="fa-solid fa-download me-1"></i> Download PDF
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-file-circle-question fa-3x mb-2 text-black-50"></i>
+                            <p class="mb-2">No PDF reports generated yet.</p>
+                            <a href="{{ url_for('reports.generate') }}" class="btn btn-clinical-primary btn-sm">Generate Report</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

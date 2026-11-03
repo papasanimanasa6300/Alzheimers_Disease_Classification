@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Alzheimer's Neuroimaging & Cognitive AI System{% endblock %}
+
+{% block public_content %}
+<!-- Hero Section -->
+<section class="py-5 bg-white border-bottom">
+    <div class="container py-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 mb-3 rounded-pill fw-semibold">
+                    <i class="fa-solid fa-microscope me-1"></i> Final Year Academic Engineering Project
+                </span>
+                <h1 class="display-5 fw-bold text-navy mb-3" style="color: #0f2942; line-height: 1.2;">
+                    Alzheimer's Disease Classification from Brain MRI with Cognitive Assessment and Explainable AI
+                </h1>
+                <p class="lead text-secondary mb-4">
+                    A clinical-grade, web-based platform integrating deep learning neuroimaging analysis across four Alzheimer stages, gradient-weighted class activation mapping (Grad-CAM), and multi-domain educational cognitive assessments.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-clinical-primary btn-lg shadow-sm">
+                        <i class="fa-solid fa-user-plus me-1"></i> Get Started
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-clinical-outline btn-lg">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> Clinician Login
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5 text-center">
+                <div class="p-4 bg-light rounded-4 border shadow-sm">
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <i class="fa-solid fa-brain text-primary fa-4x"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Multimodal Neuro-Diagnostic System</h5>
+                    <p class="text-muted small mb-0">Structural Brain MRI (224x224) + Grad-CAM Heatmaps + 5 Cognitive Domains</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 4 Disease Stages Section -->
+<section class="py-5" style="background-color: #f8fafc;">
+    <div class="container py-3">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <h2 class="fw-bold" style="color: #0f2942;">Four-Class Alzheimer's Categorization</h2>
+            <p class="text-muted">Rigorous deep learning classification trained on axial brain MRI scans.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card h-100 card-clinical border-top border-4 border-success">
+                    <div class="card-body">
+                        <span class="badge badge-nondemented mb-2">Category 1</span>
+                        <h5 class="card-title fw-bold">Non-Demented</h5>
+                        <p class="card-text text-secondary small">
+                            Intact cortical volume, normal ventricular size, and healthy hippocampal preservation without detectable structural atrophy.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 card-clinical border-top border-4 border-warning">
+                    <div class="card-body">
+                        <span class="badge badge-verymild mb-2">Category 2</span>
+                        <h5 class="card-title fw-bold">Very Mild Demented</h5>
+                        <p class="card-text text-secondary small">
+                            Early subtle cortical thinning and initial microscopic cellular degeneration; subtle medial temporal lobe changes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 card-clinical border-top border-4 border-primary">
+                    <div class="card-body">
+                        <span class="badge badge-mild mb-2">Category 3</span>
+                        <h5 class="card-title fw-bold">Mild Demented</h5>
+                        <p class="card-text text-secondary small">
+                            Noticeable bilateral hippocampal volume reduction, widening of cerebral sulci, and mild lateral ventricular enlargement.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 card-clinical border-top border-4 border-danger">
+                    <div class="card-body">
+                        <span class="badge badge-moderate mb-2">Category 4</span>
+                        <h5 class="card-title fw-bold">Moderate Demented</h5>
+                        <p class="card-text text-secondary small">
+                            Marked cortical atrophy, extensive enlargement of lateral ventricles, and pronounced neuronal degeneration.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- System Pillars Section -->
+<section class="py-5 bg-white border-top">
+    <div class="container py-3">
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="stat-icon icon-blue mx-auto mb-3">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <h5 class="fw-bold">Convolutional Neural Networks</h5>
+                    <p class="text-secondary small">High-performance deep CNN with Conv2D, batch normalization, dropout regularization, and softmax multi-class inference.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="stat-icon icon-purple mx-auto mb-3">
+                        <i class="fa-solid fa-eye"></i>
+                    </div>
+                    <h5 class="fw-bold">Explainable AI (Grad-CAM)</h5>
+                    <p class="text-secondary small">Gradient-weighted class activation mapping visualizes exact brain regions contributing to the neural network's predictions.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="stat-icon icon-emerald mx-auto mb-3">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h5 class="fw-bold">Cognitive Assessment</h5>
+                    <p class="text-secondary small">Multi-domain educational evaluation covering memory, attention, orientation, language fluency, and abstract reasoning.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

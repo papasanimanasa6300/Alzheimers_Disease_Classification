@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Assessment History - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Cognitive Assessment History</h3>
+        <p class="text-secondary small mb-0">Record of educational assessments administered across Memory, Attention, Orientation, Language, and Reasoning.</p>
+    </div>
+    <a href="{{ url_for('cognitive.test') }}" class="btn btn-clinical-primary btn-sm">
+        <i class="fa-solid fa-clipboard-question me-1"></i> Start New Assessment
+    </a>
+</div>
+
+<div class="card card-clinical mb-4">
+    <div class="card-header card-header-clean">
+        <i class="fa-solid fa-chart-line text-emerald me-2"></i> Longitudinal Cognitive Score Progression
+    </div>
+    <div class="card-body">
+        <div style="height: 220px;">
+            <canvas id="cogTrendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card card-clinical">
+    <div class="card-header card-header-clean">
+        <i class="fa-solid fa-list-ol text-primary me-2"></i> Past Evaluations ({{ records|length }})
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Session ID</th>
+                    <th>Date Evaluated</th>
+                    <th>Total Score</th>
+                    <th>Score %</th>
+                    <th>Performance Classification</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td class="ps-3 fw-semibold text-secondary">#{{ r.assessment_id }}</td>
+                            <td class="small">{{ r.assessment_date.strftime('%Y-%m-%d %H:%M') if r.assessment_date else 'N/A' }}</td>
+                            <td class="fw-bold text-navy">{{ r.total_score }} / 30 pts</td>
+                            <td>{{ ((r.total_score / 30) * 100)|round(1) }}%</td>
+                            <td>
+                                {% if r.total_score >= 26 %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">High Performance</span>
+                                {% elif r.total_score >= 20 %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Mild Variation</span>
+                                {% elif r.total_score >= 14 %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Moderate Variation</span>
+                                {% else %}
+                                    <span class="badge bg-danger text-white">Substantial Variation</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('cognitive.result', assessment_id=r.assessment_id) }}" class="btn btn-sm btn-outline-primary" title="Review Breakdown">
+                                    <i class="fa-solid fa-eye me-1"></i> Review Breakdown
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="modal" data-bs-target="#deleteCogModal{{ r.assessment_id }}" title="Delete Record">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade text-start" id="deleteCogModal{{ r.assessment_id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0 pb-0">
+                                                <h5 class="modal-title fw-bold text-danger">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Delete Assessment #{{ r.assessment_id }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body py-3">
+                                                <p class="text-secondary mb-1">
+                                                    Are you sure you want to permanently delete Cognitive Assessment record <strong>#{{ r.assessment_id }} (Score: {{ r.total_score }}/30 pts)</strong>?
+                                                </p>
+                                                <p class="text-muted small mb-0">
+                                                    This will remove all answers, domain breakdowns, and scores from your history. This action cannot be undone.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{{ url_for('cognitive.delete', assessment_id=r.assessment_id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="fa-solid fa-trash-can me-1"></i> Permanently Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-clipboard fa-3x mb-2 text-black-50"></i>
+                            <p class="mb-2">No cognitive assessment records found.</p>
+                            <a href="{{ url_for('cognitive.test') }}" class="btn btn-clinical-primary btn-sm">Take Assessment</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('cogTrendChart').getContext('2d');
+    {% if records %}
+        const labels = {{ records | reverse | map(attribute='assessment_id') | list | tojson }}.map(id => 'Session #' + id);
+        const dataVals = {{ records | reverse | map(attribute='total_score') | list | tojson }};
+    {% else %}
+        const labels = ['No Data'];
+        const dataVals = [0];
+    {% endif %}
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cognitive Score (Max 30)',
+                data: dataVals,
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#059669'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 30,
+                    ticks: { stepSize: 5 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

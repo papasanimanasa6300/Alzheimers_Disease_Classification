@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Assessment Result - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Cognitive Assessment Results</h3>
+        <p class="text-secondary small mb-0">Session ID: #{{ record.assessment_id }} | Completed: {{ record.assessment_date.strftime('%B %d, %Y') if record.assessment_date else 'Recent' }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('cognitive.history') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> Assessment History
+        </a>
+        <a href="{{ url_for('reports.generate', cog_id=record.assessment_id) }}" class="btn btn-clinical-primary btn-sm">
+            <i class="fa-solid fa-file-pdf me-1"></i> Export PDF Report
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCurrentCogModal">
+            <i class="fa-solid fa-trash-can me-1"></i> Delete
+        </button>
+    </div>
+</div>
+
+<!-- Progress / Improvement Comparison Banner -->
+{% if progress %}
+<div class="card card-clinical p-3 mb-4 border-start border-4 {% if progress.diff > 0 %}border-success bg-success-subtle{% elif progress.diff < 0 %}border-warning bg-warning-subtle{% else %}border-info bg-light{% endif %}">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon {% if progress.diff > 0 %}icon-green{% elif progress.diff < 0 %}icon-yellow{% else %}icon-blue{% endif %}">
+                <i class="fa-solid {{ progress.icon }}"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="fw-bold mb-0 text-navy" style="color: #0f2942;">
+                        Tracking Status: {{ progress.status }}
+                    </h6>
+                    {% if progress.has_previous %}
+                        <span class="badge {{ progress.badge_class }} px-2 py-1">
+                            {{ progress.diff_str }} pts ({{ progress.percent_change }}%)
+                        </span>
+                    {% else %}
+                        <span class="badge bg-primary px-2 py-1">Baseline Test</span>
+                    {% endif %}
+                </div>
+                <p class="small text-secondary mb-0 mt-1">{{ progress.message }}</p>
+            </div>
+        </div>
+        {% if progress.has_previous and prev_record %}
+            <div class="text-end">
+                <span class="text-muted small d-block">Previous Session:</span>
+                <span class="badge bg-white text-dark border">
+                    #{{ prev_record.assessment_id }}: {{ prev_record.total_score }} / 30 pts
+                </span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete Assessment Modal -->
+<div class="modal fade" id="deleteCurrentCogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Delete Assessment #{{ record.assessment_id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="text-secondary mb-1">
+                    Are you sure you want to permanently delete Cognitive Assessment record <strong>#{{ record.assessment_id }} (Score: {{ record.total_score }}/30 pts)</strong>?
+                </p>
+                <p class="text-muted small mb-0">
+                    This will remove all answers, domain breakdowns, and scores from your account.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('cognitive.delete', assessment_id=record.assessment_id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-trash-can me-1"></i> Permanently Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Total Score Summary Card -->
+    <div class="col-lg-5">
+        <div class="card card-clinical p-4 h-100">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-award text-warning me-2"></i> Overall Cognitive Performance
+            </h5>
+
+            <div class="text-center py-3 bg-light rounded border mb-3">
+                <span class="text-muted small d-block">Total Score</span>
+                <h1 class="display-4 fw-bold text-navy mb-0" style="color: #0f2942;">
+                    {{ result.total_score }} <span class="fs-4 text-muted">/ {{ result.max_score }}</span>
+                </h1>
+                <span class="badge 
+                    {% if result.total_score >= 26 %}bg-success text-white
+                    {% elif result.total_score >= 20 %}bg-warning text-dark
+                    {% elif result.total_score >= 14 %}bg-danger-subtle text-danger border border-danger-subtle
+                    {% else %}bg-danger text-white{% endif %} 
+                    px-3 py-2 mt-2 fs-6">
+                    {{ result.performance_tier }}
+                </span>
+            </div>
+
+            <div class="p-3 bg-white rounded border mb-3">
+                <h6 class="fw-bold small text-secondary mb-1">Educational Interpretation:</h6>
+                <p class="small text-muted mb-0">{{ result.clinical_note }}</p>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-0">
+                <i class="fa-solid fa-circle-info me-1"></i> Note: This educational score highlights cognitive domains and is not an MMSE/MoCA medical diagnosis.
+            </div>
+        </div>
+    </div>
+
+    <!-- Domain Radar / Bar Chart -->
+    <div class="col-lg-7">
+        <div class="card card-clinical p-4 h-100">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-chart-pie text-primary me-2"></i> Domain Performance Breakdown
+            </h5>
+            <div style="height: 260px;" class="mb-3">
+                <canvas id="domainChart"></canvas>
+            </div>
+            
+            <div class="row g-2 text-center small">
+                {% for dom, sc in result.domain_scores.items() %}
+                    <div class="col">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="d-block text-muted">{{ dom }}</span>
+                            <span class="fw-bold text-primary">{{ sc }} / 6</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Question-by-Question Review -->
+<div class="card card-clinical mb-4">
+    <div class="card-header card-header-clean">
+        <i class="fa-solid fa-list-check text-primary me-2"></i> Granular Question Review & Clinical Rationale
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 80px;">Q#</th>
+                    <th>Domain</th>
+                    <th>Assessment Task</th>
+                    <th>Selected Answer</th>
+                    <th>Score</th>
+                    <th class="pe-3">Cognitive Function Tested</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in result.detailed_breakdown %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-muted">#{{ item.question_id }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ item.domain }}</span></td>
+                        <td class="fw-semibold text-navy">{{ item.title }}</td>
+                        <td class="small">{{ item.selected_answer }}</td>
+                        <td>
+                            {% if item.score == item.max_score %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">{{ item.score }}/{{ item.max_score }}</span>
+                            {% elif item.score > 0 %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ item.score }}/{{ item.max_score }}</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ item.score }}/{{ item.max_score }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-secondary pe-3">{{ item.explanation }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('domainChart').getContext('2d');
+    const domainLabels = {{ result.domain_scores.keys() | list | tojson }};
+    const domainValues = {{ result.domain_scores.values() | list | tojson }};
+
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: domainLabels,
+            datasets: [{
+                label: 'Score Obtained (Max 6)',
+                data: domainValues,
+                fill: true,
+                backgroundColor: 'rgba(2, 132, 199, 0.2)',
+                borderColor: '#0284c7',
+                pointBackgroundColor: '#0284c7',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#0284c7',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: '#e2e8f0' },
+                    grid: { color: '#e2e8f0' },
+                    pointLabels: {
+                        font: { size: 12, weight: 'bold' },
+                        color: '#1e293b'
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 6,
+                    ticks: { stepSize: 1 }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

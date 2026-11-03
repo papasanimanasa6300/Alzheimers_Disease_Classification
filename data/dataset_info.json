@@ -1,0 +1,63 @@
+{
+    "target_classes": [
+        "Non-Demented",
+        "Very Mild Demented",
+        "Mild Demented",
+        "Moderate Demented"
+    ],
+    "image_size": [
+        224,
+        224
+    ],
+    "raw_counts": {
+        "Non-Demented": 3200,
+        "Very Mild Demented": 2240,
+        "Mild Demented": 896,
+        "Moderate Demented": 64
+    },
+    "split_counts": {
+        "train": {
+            "Non-Demented": 2240,
+            "Very Mild Demented": 1568,
+            "Mild Demented": 627,
+            "Moderate Demented": 45
+        },
+        "val": {
+            "Non-Demented": 480,
+            "Very Mild Demented": 336,
+            "Mild Demented": 134,
+            "Moderate Demented": 10
+        },
+        "test": {
+            "Non-Demented": 480,
+            "Very Mild Demented": 336,
+            "Mild Demented": 135,
+            "Moderate Demented": 9
+        }
+    },
+    "total_unique": 6400,
+    "duplicates_removed": 0,
+    "corrupted_removed": 0,
+    "sample_manifest": {
+        "Non-Demented": [
+            "Non-Demented_non_10.png",
+            "Non-Demented_non_1001.png",
+            "Non-Demented_non_1008.png"
+        ],
+        "Very Mild Demented": [
+            "Very_Mild_Demented_verymild.png",
+            "Very_Mild_Demented_verymild_1017.png",
+            "Very_Mild_Demented_verymild_102.png"
+        ],
+        "Mild Demented": [
+            "Mild_Demented_mild_101.png",
+            "Mild_Demented_mild_106.png",
+            "Mild_Demented_mild_109.png"
+        ],
+        "Moderate Demented": [
+            "Moderate_Demented_moderate_15.png",
+            "Moderate_Demented_moderate_18.png",
+            "Moderate_Demented_moderate_24.png"
+        ]
+    }
+}

@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Grad-CAM Explainable AI - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">
+            <i class="fa-solid fa-eye text-primary me-2"></i> Explainable AI: Grad-CAM Visualization
+        </h3>
+        <p class="text-secondary small mb-0">
+            Gradient-Weighted Class Activation Mapping (Grad-CAM) highlights exact cerebral regions determining the CNN model's decision.
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('mri.result', prediction_id=record.prediction_id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Return to Result
+        </a>
+        <a href="{{ url_for('static', filename=sbs_rel.replace('static/', '')) }}" download="GradCAM_Analysis_{{ record.prediction_id }}.png" class="btn btn-clinical-primary btn-sm">
+            <i class="fa-solid fa-download me-1"></i> Download High-Res Board
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteScanModal">
+            <i class="fa-solid fa-trash-can me-1"></i> Delete Scan
+        </button>
+    </div>
+</div>
+
+<!-- Delete Scan Confirmation Modal -->
+<div class="modal fade" id="deleteScanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Delete MRI Record #{{ record.prediction_id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="text-secondary mb-1">
+                    Are you sure you want to permanently delete this MRI scan and its Grad-CAM attention visualizations (<strong>Record #{{ record.prediction_id }}</strong>)?
+                </p>
+                <p class="text-muted small mb-0">
+                    This will delete this image and its heatmaps permanently.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('mri.delete', prediction_id=record.prediction_id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-trash-can me-1"></i> Permanently Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diagnostic Classification Summary Strip -->
+<div class="card card-clinical p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small fw-semibold">Patient Record:</span>
+            <span class="badge bg-light text-dark border">#{{ record.prediction_id }}</span>
+            <span class="text-muted small fw-semibold ms-2">Predicted Stage:</span>
+            {% if record.predicted_category == 'Non-Demented' %}
+                <span class="badge badge-nondemented px-3 py-1">{{ record.predicted_category }}</span>
+            {% elif record.predicted_category == 'Very Mild Demented' %}
+                <span class="badge badge-verymild px-3 py-1">{{ record.predicted_category }}</span>
+            {% elif record.predicted_category == 'Mild Demented' %}
+                <span class="badge badge-mild px-3 py-1">{{ record.predicted_category }}</span>
+            {% else %}
+                <span class="badge badge-moderate px-3 py-1">{{ record.predicted_category }}</span>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div>
+                <span class="text-muted small fw-semibold">Diagnostic Confidence:</span>
+                <span class="fw-bold text-primary ms-1">{{ (record.confidence * 100)|round(2) }}%</span>
+            </div>
+            <div>
+                <span class="text-muted small fw-semibold">Feature Layer:</span>
+                <span class="badge bg-secondary ms-1 font-monospace">last_conv_layer</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plain-English Heatmap Takeaway -->
+<div class="card card-clinical p-3 mb-4 border-start border-4 border-primary bg-light">
+    <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon icon-blue">
+            <i class="fa-solid fa-lightbulb"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold mb-1 text-navy" style="color: #0f2942;">
+                What does this heatmap show in plain English?
+            </h6>
+            <p class="text-secondary small mb-0">
+                {{ stage_info.gradcam_guide if stage_info else "The red and yellow regions indicate where the AI focused its attention to classify this scan." }}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Three-Panel Individual Diagnostic Analysis Grid -->
+<div class="row g-4 mb-4">
+    <!-- Panel 1: Original MRI Scan -->
+    <div class="col-lg-4">
+        <div class="card card-clinical h-100 p-3 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold text-navy small" style="color: #0f2942;">1. Original Brain MRI</span>
+                <span class="badge bg-light text-secondary border small">Input Scan</span>
+            </div>
+            <div class="p-2 bg-dark rounded mb-2 d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                <img src="{{ url_for('static', filename=orig_rel.replace('static/', '')) }}" 
+                     alt="Original Brain MRI" 
+                     class="img-fluid rounded" 
+                     style="max-height: 240px; width: auto; object-fit: contain;">
+            </div>
+            <p class="text-secondary small mb-0">
+                Normalized T1-weighted axial brain slice input to the neural network ($224 \times 224$ pixels).
+            </p>
+        </div>
+    </div>
+
+    <!-- Panel 2: Grad-CAM Activation Heatmap -->
+    <div class="col-lg-4">
+        <div class="card card-clinical h-100 p-3 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold text-navy small" style="color: #0f2942;">2. Activation Heatmap</span>
+                <span class="badge bg-warning text-dark border small">Attention Gradient</span>
+            </div>
+            <div class="p-2 bg-dark rounded mb-2 d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                <img src="{{ url_for('static', filename=heatmap_rel.replace('static/', '')) }}" 
+                     alt="Grad-CAM Activation Heatmap" 
+                     class="img-fluid rounded" 
+                     style="max-height: 240px; width: auto; object-fit: contain;">
+            </div>
+            <div class="mb-1">
+                <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, #000084, #0000FF, #00FFFF, #00FF00, #FFFF00, #FF0000);"></div>
+                <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
+                    <span>Baseline (0.0)</span>
+                    <span>Peak Focus (1.0)</span>
+                </div>
+            </div>
+            <p class="text-secondary small mb-0">
+                Gradients backpropagated to feature maps of <code>last_conv_layer</code> filtered with ReLU.
+            </p>
+        </div>
+    </div>
+
+    <!-- Panel 3: Diagnostic Overlay -->
+    <div class="col-lg-4">
+        <div class="card card-clinical h-100 p-3 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold text-navy small" style="color: #0f2942;">3. Diagnostic Overlay</span>
+                <span class="badge bg-primary px-2 py-1 small">{{ (record.confidence * 100)|round(1) }}% Match</span>
+            </div>
+            <div class="p-2 bg-dark rounded mb-2 d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                <img src="{{ url_for('static', filename=overlay_rel.replace('static/', '')) }}" 
+                     alt="Diagnostic Overlay" 
+                     class="img-fluid rounded" 
+                     style="max-height: 240px; width: auto; object-fit: contain;">
+            </div>
+            <p class="text-secondary small mb-0">
+                Alpha-blended overlay (45% weight) identifying ventricular dilation and hippocampal volume reduction.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Unified Radiologist Diagnostic Board (Composite) -->
+<div class="card card-clinical p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold text-navy mb-0" style="color: #0f2942;">
+                <i class="fa-solid fa-layer-group text-primary me-2"></i> Unified Radiologist Diagnostic Board
+            </h5>
+            <span class="text-muted small">Comparative tri-panel high-definition export format for clinical documentation and review.</span>
+        </div>
+        <a href="{{ url_for('static', filename=sbs_rel.replace('static/', '')) }}" download="GradCAM_Diagnostic_Board_{{ record.prediction_id }}.png" class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-download me-1"></i> Save Image
+        </a>
+    </div>
+
+    <div class="text-center p-3 rounded" style="background-color: #0b132b;">
+        <img src="{{ url_for('static', filename=sbs_rel.replace('static/', '')) }}" 
+             alt="Unified Radiologist Diagnostic Board" 
+             class="img-fluid rounded shadow" 
+             style="max-height: 480px; width: 100%; object-fit: contain;">
+    </div>
+</div>
+
+<!-- Detailed Brain Regions & AI Attention Guide -->
+<div class="card card-clinical p-4 mb-4">
+    <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+        <i class="fa-solid fa-brain text-primary me-2"></i> Anatomical Brain Regions & AI Decision Analysis
+    </h5>
+    <p class="text-secondary small mb-3">
+        Here is what the AI observed across key brain structures in this scan to determine the <strong>{{ record.predicted_category }}</strong> classification:
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th style="width: 25%;">Brain Region</th>
+                    <th style="width: 20%;">Heatmap Activation</th>
+                    <th style="width: 25%;">Biological Function</th>
+                    <th style="width: 30%;">Clinical Finding on This Scan</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                <tr>
+                    <td class="fw-bold text-navy">
+                        <i class="fa-solid fa-circle-dot text-danger me-1"></i> Hippocampus & Mesial Temporal Lobe
+                    </td>
+                    <td>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                            High Attention (Hotspot)
+                        </span>
+                    </td>
+                    <td class="text-muted">Primary memory center, short-term to long-term memory encoding.</td>
+                    <td>
+                        The AI focused intensely on the boundaries of the temporal lobe, detecting subtle tissue shrinkage characteristic of <strong>{{ record.predicted_category }}</strong>.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold text-navy">
+                        <i class="fa-solid fa-circle-dot text-warning me-1"></i> Lateral Ventricles
+                    </td>
+                    <td>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                            Moderate Attention
+                        </span>
+                    </td>
+                    <td class="text-muted">Fluid-filled cavities cushioning the brain with cerebrospinal fluid (CSF).</td>
+                    <td>
+                        Mild enlargement of fluid spaces detected as adjacent brain tissue reduced slightly in volume (*compensatory expansion*).
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fw-bold text-navy">
+                        <i class="fa-solid fa-circle-dot text-info me-1"></i> Frontal & Parietal Cortex
+                    </td>
+                    <td>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">
+                            Baseline (Cool Blue)
+                        </span>
+                    </td>
+                    <td class="text-muted">Executive planning, motor coordination, and sensory processing.</td>
+                    <td>
+                        Cortical tissue thickness appears relatively preserved with minimal degenerative changes in non-memory zones.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Scientific Interpretation & Technical Guide -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card card-clinical p-4 h-100">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-microscope text-primary me-2"></i> How Grad-CAM Works
+            </h5>
+            <p class="text-secondary small">
+                Grad-CAM computes the gradients of the target class score <em>y<sup>c</sup></em> with respect to the feature activation map <em>A<sup>k</sup></em> of the final convolutional layer:
+            </p>
+            <div class="p-3 bg-light rounded border text-center font-monospace small mb-3">
+                &alpha;<sub>k</sub><sup>c</sup> = (1/Z) &sum;<sub>i</sub> &sum;<sub>j</sub> (&part;y<sup>c</sup> / &part;A<sub>i,j</sub><sup>k</sup>)
+            </div>
+            <p class="text-secondary small mb-0">
+                These gradients represent importance weights capturing the spatial locations most positively correlated with the predicted Alzheimer's category. The result is passed through a ReLU activation to retain only positive influences on the diagnosis.
+            </p>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-clinical p-4 h-100">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-palette text-warning me-2"></i> Activation Heatmap Interpretation
+            </h5>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Lowest Attention (Baseline)</span>
+                    <span>Highest Diagnostic Focus</span>
+                </div>
+                <div style="height: 12px; border-radius: 6px; background: linear-gradient(to right, #000084, #0000FF, #00FFFF, #00FF00, #FFFF00, #FF0000);"></div>
+            </div>
+            <ul class="text-secondary small ps-3 mb-0">
+                <li class="mb-2"><strong>Red & Yellow Hotspots:</strong> Regions with intense model attention. Typically identify ventricular expansion, temporal lobe cortical thinning, and hippocampal atrophy.</li>
+                <li class="mb-2"><strong>Green & Cyan Transitions:</strong> Intermediate activations corresponding to peripheral gyri and sulcal anatomical transitions.</li>
+                <li><strong>Blue & Violet Areas:</strong> Background intracranial spaces and preserved non-degenerative tissue that do not drive the classification.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

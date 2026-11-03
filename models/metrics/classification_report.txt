@@ -1,0 +1,19 @@
+ALZHEIMER'S MRI CNN TEST EVALUATION REPORT
+============================================================
+
+                    precision    recall  f1-score   support
+
+      Non-Demented     0.8750    0.0583    0.1094       480
+Very Mild Demented     0.3578    0.9881    0.5253       336
+     Mild Demented     0.0000    0.0000    0.0000       135
+ Moderate Demented     0.0000    0.0000    0.0000         9
+
+          accuracy                         0.3750       960
+         macro avg     0.3082    0.2616    0.1587       960
+      weighted avg     0.5627    0.3750    0.2385       960
+
+
+Accuracy:        0.3750
+Macro Precision: 0.3082
+Macro Recall:    0.2616
+Macro F1-Score:  0.1587

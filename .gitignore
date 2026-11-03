@@ -1,0 +1,42 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Environment Variables & Secrets (CRITICAL for security)
+.env
+*.env.local
+
+# Large Datasets & Archives
+data/raw/
+data/processed/
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Runtime Generated User Files
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+app/static/reports/*
+!app/static/reports/.gitkeep
+app/static/heatmaps/*
+!app/static/heatmaps/.gitkeep
+
+# IDEs & System Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini

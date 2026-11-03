@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Dashboard - Alzheimer's NeuroInformatics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Clinical Dashboard</h3>
+        <p class="text-secondary small mb-0">Overview of patient neuroimaging analyses, cognitive scores, and diagnostics.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-primary btn-sm">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload MRI
+        </a>
+        <a href="{{ url_for('cognitive.test') }}" class="btn btn-clinical-outline btn-sm">
+            <i class="fa-solid fa-clipboard-question me-1"></i> New Assessment
+        </a>
+    </div>
+</div>
+
+<!-- Stat Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-clinical stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ total_mri }}</div>
+                <div class="stat-label">Total MRI Predictions</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-clinical stat-card">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ total_cognitive }}</div>
+                <div class="stat-label">Cognitive Assessments</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-clinical stat-card">
+            <div class="stat-icon icon-purple">
+                <i class="fa-solid fa-lightbulb"></i>
+            </div>
+            <div>
+                <div class="stat-value">
+                    {% if latest_mri %}
+                        <span class="fs-6 fw-bold text-truncate d-inline-block" style="max-width: 140px;">
+                            {{ latest_mri.predicted_category }}
+                        </span>
+                    {% else %}
+                        <span class="fs-6 text-muted">None</span>
+                    {% endif %}
+                </div>
+                <div class="stat-label">Latest MRI Category</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-clinical stat-card">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-star-half-stroke"></i>
+            </div>
+            <div>
+                <div class="stat-value">
+                    {% if latest_cog %}
+                        {{ latest_cog.total_score }} <span class="fs-6 text-muted">/ 30</span>
+                    {% else %}
+                        <span class="fs-6 text-muted">N/A</span>
+                    {% endif %}
+                </div>
+                <div class="stat-label">Latest Cognitive Score</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest Evaluation Highlights -->
+<div class="row g-4 mb-4">
+    <!-- Latest MRI Card -->
+    <div class="col-lg-6">
+        <div class="card card-clinical h-100">
+            <div class="card-header card-header-clean d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-image text-primary me-2"></i> Latest Brain MRI Scan</span>
+                {% if latest_mri %}
+                    <a href="{{ url_for('mri.result', prediction_id=latest_mri.prediction_id) }}" class="btn btn-sm btn-link text-decoration-none">View Analysis &rarr;</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if latest_mri %}
+                    <div class="row align-items-center g-3">
+                        <div class="col-sm-4 text-center">
+                            <img src="{{ url_for('static', filename=latest_mri.image_path.replace('static/', '')) }}" 
+                                 class="img-fluid rounded border shadow-sm" alt="Latest MRI" style="max-height: 140px; object-fit: cover;">
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Classification Finding:</span>
+                                {% if latest_mri.predicted_category == 'Non-Demented' %}
+                                    <span class="badge badge-nondemented fs-6">{{ latest_mri.predicted_category }}</span>
+                                {% elif latest_mri.predicted_category == 'Very Mild Demented' %}
+                                    <span class="badge badge-verymild fs-6">{{ latest_mri.predicted_category }}</span>
+                                {% elif latest_mri.predicted_category == 'Mild Demented' %}
+                                    <span class="badge badge-mild fs-6">{{ latest_mri.predicted_category }}</span>
+                                {% else %}
+                                    <span class="badge badge-moderate fs-6">{{ latest_mri.predicted_category }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted small">Confidence Score:</span>
+                                <div class="progress mt-1" style="height: 10px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (latest_mri.confidence * 100)|round(1) }}%;"></div>
+                                </div>
+                                <span class="small fw-semibold text-secondary">{{ (latest_mri.confidence * 100)|round(2) }}%</span>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="{{ url_for('mri.gradcam', prediction_id=latest_mri.prediction_id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fa-solid fa-eye me-1"></i> Grad-CAM XAI
+                                </a>
+                                <a href="{{ url_for('reports.generate', mri_id=latest_mri.prediction_id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fa-solid fa-file-pdf me-1"></i> Generate PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-brain fa-3x mb-2 text-black-50"></i>
+                        <p class="mb-2">No MRI scans uploaded yet.</p>
+                        <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-primary btn-sm">Upload Scan</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Cognitive Assessment Card -->
+    <div class="col-lg-6">
+        <div class="card card-clinical h-100">
+            <div class="card-header card-header-clean d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-clipboard-check text-emerald me-2"></i> Latest Cognitive Assessment</span>
+                {% if latest_cog %}
+                    <a href="{{ url_for('cognitive.result', assessment_id=latest_cog.assessment_id) }}" class="btn btn-sm btn-link text-decoration-none">View Breakdown &rarr;</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if latest_cog %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="text-muted small d-block">Overall Score</span>
+                            <h2 class="fw-bold text-navy mb-0" style="color: #0f2942;">
+                                {{ latest_cog.total_score }} <span class="fs-6 text-muted">/ 30 pts</span>
+                            </h2>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-muted small d-block">Date Evaluated</span>
+                            <span class="fw-semibold text-secondary">{{ latest_cog.assessment_date.strftime('%b %d, %Y') if latest_cog.assessment_date else 'Recent' }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded border mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small fw-semibold text-secondary">Performance Tier:</span>
+                            {% if latest_cog.total_score >= 26 %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">High Performance</span>
+                            {% elif latest_cog.total_score >= 20 %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Mild Variation</span>
+                            {% elif latest_cog.total_score >= 14 %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Moderate Variation</span>
+                            {% else %}
+                                <span class="badge bg-danger text-white">Substantial Variation</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('cognitive.result', assessment_id=latest_cog.assessment_id) }}" class="btn btn-sm btn-clinical-outline">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Review Answers
+                        </a>
+                        <a href="{{ url_for('cognitive.test') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa-solid fa-rotate-right me-1"></i> Retake Test
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-clipboard-question fa-3x mb-2 text-black-50"></i>
+                        <p class="mb-2">No cognitive evaluations recorded.</p>
+                        <a href="{{ url_for('cognitive.test') }}" class="btn btn-clinical-primary btn-sm">Take Assessment</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Longitudinal Activity Table -->
+<div class="card card-clinical">
+    <div class="card-header card-header-clean d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i> Recent Examination Logs</span>
+        <a href="{{ url_for('dashboard.progress_tracking') }}" class="btn btn-sm btn-link text-decoration-none">Full Longitudinal Analytics &rarr;</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Type</th>
+                    <th>Date & Time</th>
+                    <th>Clinical Finding / Score</th>
+                    <th>Confidence / Status</th>
+                    <th class="text-end pe-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if recent_mri or recent_cog %}
+                    {% for m in recent_mri %}
+                        <tr>
+                            <td class="ps-3">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                    <i class="fa-solid fa-brain me-1"></i> Brain MRI
+                                </span>
+                            </td>
+                            <td class="small text-secondary">{{ m.prediction_date.strftime('%Y-%m-%d %H:%M') if m.prediction_date else 'Recent' }}</td>
+                            <td>
+                                {% if m.predicted_category == 'Non-Demented' %}
+                                    <span class="badge badge-nondemented">{{ m.predicted_category }}</span>
+                                {% elif m.predicted_category == 'Very Mild Demented' %}
+                                    <span class="badge badge-verymild">{{ m.predicted_category }}</span>
+                                {% elif m.predicted_category == 'Mild Demented' %}
+                                    <span class="badge badge-mild">{{ m.predicted_category }}</span>
+                                {% else %}
+                                    <span class="badge badge-moderate">{{ m.predicted_category }}</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="small fw-semibold">{{ (m.confidence * 100)|round(1) }}%</span></td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('mri.result', prediction_id=m.prediction_id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% for c in recent_cog %}
+                        <tr>
+                            <td class="ps-3">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="fa-solid fa-clipboard-check me-1"></i> Cognitive Test
+                                </span>
+                            </td>
+                            <td class="small text-secondary">{{ c.assessment_date.strftime('%Y-%m-%d %H:%M') if c.assessment_date else 'Recent' }}</td>
+                            <td><span class="fw-semibold">{{ c.total_score }} / 30 pts</span></td>
+                            <td><span class="badge bg-light text-dark border">Recorded</span></td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('cognitive.result', assessment_id=c.assessment_id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            No activities logged yet. Upload an MRI or take a cognitive assessment to populate history.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

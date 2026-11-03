@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}MRI Prediction History - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">MRI Prediction Records</h3>
+        <p class="text-secondary small mb-0">Complete historical repository of structural brain MRI scans evaluated with CNN and Grad-CAM.</p>
+    </div>
+    <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-primary btn-sm">
+        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload New Scan
+    </a>
+</div>
+
+<div class="card card-clinical">
+    <div class="card-header card-header-clean d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Patient Scan Records ({{ records|length }})</span>
+        <input type="text" id="searchMRI" class="form-control form-control-sm w-auto" placeholder="Filter by category...">
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="mriTable">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 80px;">Thumbnail</th>
+                    <th>Record ID</th>
+                    <th>Examination Timestamp</th>
+                    <th>Predicted Category</th>
+                    <th>Model Confidence</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td class="ps-3">
+                                <img src="{{ url_for('static', filename=r.image_path.replace('static/', '')) }}" 
+                                     class="rounded border" style="width: 44px; height: 44px; object-fit: cover;" alt="Scan">
+                            </td>
+                            <td class="fw-semibold text-secondary">#{{ r.prediction_id }}</td>
+                            <td class="small">{{ r.prediction_date.strftime('%Y-%m-%d %H:%M:%S') if r.prediction_date else 'N/A' }}</td>
+                            <td>
+                                {% if r.predicted_category == 'Non-Demented' %}
+                                    <span class="badge badge-nondemented">{{ r.predicted_category }}</span>
+                                {% elif r.predicted_category == 'Very Mild Demented' %}
+                                    <span class="badge badge-verymild">{{ r.predicted_category }}</span>
+                                {% elif r.predicted_category == 'Mild Demented' %}
+                                    <span class="badge badge-mild">{{ r.predicted_category }}</span>
+                                {% else %}
+                                    <span class="badge badge-moderate">{{ r.predicted_category }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (r.confidence * 100)|round }}%;"></div>
+                                    </div>
+                                    <span class="small fw-semibold">{{ (r.confidence * 100)|round(1) }}%</span>
+                                </div>
+                            </td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('mri.result', prediction_id=r.prediction_id) }}" class="btn btn-sm btn-outline-primary me-1" title="View Result">
+                                    <i class="fa-solid fa-square-poll-vertical me-1"></i> Result
+                                </a>
+                                <a href="{{ url_for('mri.gradcam', prediction_id=r.prediction_id) }}" class="btn btn-sm btn-outline-secondary me-1" title="View Heatmap">
+                                    <i class="fa-solid fa-eye me-1"></i> Grad-CAM
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteMRIModal{{ r.prediction_id }}" title="Delete Record">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade text-start" id="deleteMRIModal{{ r.prediction_id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0 pb-0">
+                                                <h5 class="modal-title fw-bold text-danger">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Delete MRI Record #{{ r.prediction_id }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body py-3">
+                                                <p class="text-secondary mb-1">
+                                                    Are you sure you want to permanently delete MRI scan record <strong>#{{ r.prediction_id }} ({{ r.predicted_category }})</strong>?
+                                                </p>
+                                                <p class="text-muted small mb-0">
+                                                    This will delete the uploaded image, CNN classification metrics, and Grad-CAM heatmap visuals from your history. This action cannot be undone.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{{ url_for('mri.delete', prediction_id=r.prediction_id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="fa-solid fa-trash-can me-1"></i> Permanently Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-folder-open fa-3x mb-2 text-black-50"></i>
+                            <p class="mb-2">No MRI prediction records found.</p>
+                            <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-primary btn-sm">Upload Scan</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('searchMRI').addEventListener('keyup', function() {
+    const val = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#mriTable tbody tr');
+    rows.forEach(r => {
+        const text = r.textContent.toLowerCase();
+        r.style.display = text.includes(val) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

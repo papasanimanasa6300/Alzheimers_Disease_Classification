@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}MRI Classification Result - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<!-- Header Bar with Quick Action Buttons -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">
+            <i class="fa-solid fa-square-poll-vertical text-primary me-2"></i> MRI Classification Analysis
+        </h3>
+        <p class="text-secondary small mb-0">
+            Record ID: <strong>#{{ record.prediction_id }}</strong> | Scanned on: {{ record.prediction_date.strftime('%B %d, %Y at %H:%M') if record.prediction_date else 'Recent' }}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('cognitive.test') }}" class="btn btn-outline-success btn-sm">
+            <i class="fa-solid fa-brain me-1"></i> Take Cognitive Test
+        </a>
+        <a href="{{ url_for('mri.gradcam', prediction_id=record.prediction_id) }}" class="btn btn-clinical-outline btn-sm">
+            <i class="fa-solid fa-eye me-1"></i> View Grad-CAM Heatmap
+        </a>
+        <a href="{{ url_for('reports.generate', mri_id=record.prediction_id) }}" class="btn btn-clinical-primary btn-sm">
+            <i class="fa-solid fa-file-pdf me-1"></i> Export PDF Report
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCurrentMRIModal">
+            <i class="fa-solid fa-trash-can me-1"></i> Delete
+        </button>
+    </div>
+</div>
+
+<!-- Delete Record Modal -->
+<div class="modal fade" id="deleteCurrentMRIModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Delete MRI Record #{{ record.prediction_id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="text-secondary mb-1">
+                    Are you sure you want to permanently delete this MRI scan record (<strong>#{{ record.prediction_id }} - {{ record.predicted_category }}</strong>)?
+                </p>
+                <p class="text-muted small mb-0">
+                    This will delete this image, model classification metrics, and Grad-CAM visualizations.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('mri.delete', prediction_id=record.prediction_id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-trash-can me-1"></i> Permanently Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Primary Diagnostic Assessment Banner -->
+<div class="card card-clinical p-4 mb-4 border-start border-4" style="border-left-color: {{ stage_info.theme_color }} !important;">
+    <div class="row align-items-center g-3">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <span class="badge {{ stage_info.badge_class }} fs-6 px-3 py-2">
+                    <i class="fa-solid {{ stage_info.icon }} me-1"></i> {{ record.predicted_category }}
+                </span>
+                <span class="badge {{ stage_info.severity_badge }} px-3 py-2">
+                    Severity: {{ stage_info.severity }}
+                </span>
+            </div>
+            <h4 class="fw-bold text-navy mb-1" style="color: #0f2942;">
+                {{ stage_info.title }}
+            </h4>
+            <p class="text-secondary mb-0">
+                {{ stage_info.summary }}
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end text-start border-start-md ps-md-4">
+            <span class="text-muted small d-block mb-1">Primary Diagnostic Confidence:</span>
+            <div class="display-6 fw-bold text-primary mb-1">
+                {{ (record.confidence * 100)|round(1) }}%
+            </div>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ (record.confidence * 100)|round(1) }}%; background-color: {{ stage_info.theme_color }};"></div>
+            </div>
+            <span class="text-muted small mt-1 d-block">Confidence calculated via 4-class Softmax layer</span>
+        </div>
+    </div>
+</div>
+
+<!-- Four-Class Likelihood Breakdown (What Percent in Each Type) -->
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-navy mb-0" style="color: #0f2942;">
+            <i class="fa-solid fa-chart-pie text-primary me-2"></i> Classification Likelihood Across All 4 Stages
+        </h5>
+        <span class="text-muted small">Total model probability distribution (sums to 100%)</span>
+    </div>
+
+    <div class="row g-3">
+        {% for item in prob_breakdown %}
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 p-3 {% if item.is_primary %}border-primary shadow-sm bg-light{% else %}border{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-bold small text-navy" style="color: #0f2942;">{{ item.short_title }}</span>
+                    {% if item.is_primary %}
+                        <span class="badge bg-primary text-white" style="font-size: 0.7rem;">Primary Match</span>
+                    {% endif %}
+                </div>
+                <div class="display-6 fw-bold mb-2" style="color: {{ item.theme_color }};">
+                    {{ item.percentage }}
+                </div>
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ item.percent_val }}%; background-color: {{ item.theme_color }};"></div>
+                </div>
+                <span class="text-muted" style="font-size: 0.75rem;">
+                    {% if item.category == 'Non-Demented' %}
+                        Healthy brain morphology
+                    {% elif item.category == 'Very Mild Demented' %}
+                        Minimal Cognitive Impairment (MCI)
+                    {% elif item.category == 'Mild Demented' %}
+                        Early progressive dementia
+                    {% else %}
+                        Advanced neurodegeneration
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Plain English Guide: What Does This Result Mean? -->
+<div class="row g-4 mb-4">
+    <!-- Left: Plain English Explanations -->
+    <div class="col-lg-7">
+        <div class="card card-clinical h-100 p-4">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-file-medical text-primary me-2"></i> Understanding Your Result in Plain Words
+            </h5>
+
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary mb-1">
+                    <i class="fa-solid fa-circle-question me-1"></i> What does this diagnosis mean?
+                </h6>
+                <p class="text-secondary small mb-0">
+                    {{ stage_info.what_it_means }}
+                </p>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary mb-1">
+                    <i class="fa-solid fa-person-walking me-1"></i> How does this affect everyday life?
+                </h6>
+                <p class="text-secondary small mb-0">
+                    {{ stage_info.daily_life_impact }}
+                </p>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary mb-1">
+                    <i class="fa-solid fa-brain me-1"></i> What did the AI observe in the Brain MRI scan?
+                </h6>
+                <p class="text-secondary small mb-0">
+                    {{ stage_info.brain_features_observed }}
+                </p>
+            </div>
+
+            <div>
+                <h6 class="fw-bold text-success mb-2">
+                    <i class="fa-solid fa-list-check me-1"></i> Recommended Next Steps:
+                </h6>
+                <ul class="text-secondary small ps-3 mb-0">
+                    {% for step in stage_info.recommended_steps %}
+                        <li class="mb-2">{{ step }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Uploaded MRI Image + Distribution Graph -->
+    <div class="col-lg-5">
+        <div class="card card-clinical h-100 p-4">
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">
+                <i class="fa-solid fa-image text-primary me-2"></i> Evaluated Neuroimaging Scan
+            </h5>
+
+            <div class="text-center p-2 bg-dark rounded mb-3">
+                <img src="{{ url_for('static', filename=record.image_path.replace('static/', '')) }}" 
+                     class="img-fluid rounded shadow-sm" alt="Analyzed Scan" style="max-height: 200px; object-fit: contain;">
+                <div class="text-light small mt-1 opacity-75">T1-Weighted Axial Brain Slice (224 &times; 224)</div>
+            </div>
+
+            <!-- Softmax Probability Chart -->
+            <h6 class="fw-bold text-navy small mb-2" style="color: #0f2942;">Model Softmax Probabilities:</h6>
+            <div style="height: 180px;" class="mb-3">
+                <canvas id="probabilityChart"></canvas>
+            </div>
+
+            <!-- Explainable AI Teaser -->
+            <div class="p-3 rounded bg-light border">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-navy small mb-0" style="color: #0f2942;">Want to see WHY the AI made this choice?</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">View brain heatmap regions driving this classification.</div>
+                    </div>
+                    <a href="{{ url_for('mri.gradcam', prediction_id=record.prediction_id) }}" class="btn btn-outline-primary btn-sm text-nowrap ms-2">
+                        View Heatmap &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Navigation Bar -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <a href="{{ url_for('mri.history') }}" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-clock-rotate-left me-1"></i> Back to Prediction History
+    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-outline">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i> Classify Another Scan
+        </a>
+        <a href="{{ url_for('cognitive.test') }}" class="btn btn-success">
+            <i class="fa-solid fa-clipboard-question me-1"></i> Take Cognitive Assessment
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('probabilityChart').getContext('2d');
+    
+    // Labels and data directly formatted from backend
+    const labels = ['Non-Demented', 'Very Mild', 'Mild', 'Moderate'];
+    const dataValues = [
+        {{ (probabilities.get('Non-Demented', 0.0) * 100)|round(1) }},
+        {{ (probabilities.get('Very Mild Demented', 0.0) * 100)|round(1) }},
+        {{ (probabilities.get('Mild Demented', 0.0) * 100)|round(1) }},
+        {{ (probabilities.get('Moderate Demented', 0.0) * 100)|round(1) }}
+    ];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Likelihood (%)',
+                data: dataValues,
+                backgroundColor: [
+                    '#198754', // Green for Non-Demented
+                    '#ffc107', // Yellow for Very Mild
+                    '#fd7e14', // Orange for Mild
+                    '#dc3545'  // Red for Moderate
+                ],
+                borderRadius: 5,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) { return context.parsed.y + '% Likelihood'; }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: function(value) { return value + '%'; }, font: { size: 10 } }
+                },
+                x: {
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

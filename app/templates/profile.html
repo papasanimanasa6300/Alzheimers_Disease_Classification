@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-clinical p-4 mb-4">
+            <div class="d-flex align-items-center gap-4 mb-4 pb-3 border-bottom">
+                <div class="stat-icon icon-blue" style="width: 72px; height: 72px; font-size: 2rem;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">{{ user_record.username }}</h3>
+                    <p class="text-secondary small mb-0">{{ user_record.email }} | User ID: #{{ user_record.user_id }}</p>
+                </div>
+            </div>
+
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">Clinical & Platform Statistics</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded border text-center">
+                        <div class="stat-value text-primary">{{ total_mri }}</div>
+                        <div class="stat-label">Brain MRI Predictions</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded border text-center">
+                        <div class="stat-value text-emerald">{{ total_cog }}</div>
+                        <div class="stat-label">Cognitive Assessments</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded border text-center">
+                        <div class="stat-value text-purple">{{ total_reports }}</div>
+                        <div class="stat-label">PDF Medical Reports</div>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="fw-bold text-navy mb-3" style="color: #0f2942;">System Architecture & Verification</h5>
+            <ul class="list-group list-group-flush small text-secondary">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span>Deep Learning Framework:</span>
+                    <strong class="text-dark">TensorFlow 2.16+ / Keras (CNN)</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span>Explainable AI Engine:</span>
+                    <strong class="text-dark">Gradient-Weighted Class Activation Mapping (Grad-CAM)</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span>Database Engine:</span>
+                    <strong class="text-dark">MySQL Server (Parameterized Queries)</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span>Report Generation:</span>
+                    <strong class="text-dark">ReportLab PDF Engine</strong>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

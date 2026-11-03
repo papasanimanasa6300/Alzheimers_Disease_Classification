@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Tracking & Analytics - NeuroCognitive AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-navy mb-1" style="color: #0f2942;">Multimodal Progress Tracking</h3>
+        <p class="text-secondary small mb-0">Longitudinal analytics integrating deep learning neuroimaging findings with cognitive scoring trends.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('mri.upload') }}" class="btn btn-clinical-outline btn-sm">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i> New MRI Scan
+        </a>
+        <a href="{{ url_for('cognitive.test') }}" class="btn btn-clinical-primary btn-sm">
+            <i class="fa-solid fa-clipboard-question me-1"></i> New Cognitive Test
+        </a>
+    </div>
+</div>
+
+<!-- Longitudinal Multimodal Graph -->
+<div class="card card-clinical p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-navy mb-0" style="color: #0f2942;">
+            <i class="fa-solid fa-chart-line text-primary me-2"></i> Cognitive Trend vs. MRI Stage Progression
+        </h5>
+        <span class="badge bg-light text-dark border">Longitudinal Timeline</span>
+    </div>
+    <div style="height: 320px;">
+        <canvas id="longitudinalChart"></canvas>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- MRI Progression List -->
+    <div class="col-lg-6">
+        <div class="card card-clinical h-100">
+            <div class="card-header card-header-clean">
+                <i class="fa-solid fa-brain text-primary me-2"></i> Historical MRI Categories
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if mri_history %}
+                        {% for m in mri_history %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                <div>
+                                    <span class="fw-semibold text-navy d-block">Scan #{{ m.prediction_id }}</span>
+                                    <span class="small text-muted">{{ m.prediction_date.strftime('%b %d, %Y') if m.prediction_date else 'Recent' }}</span>
+                                </div>
+                                <div class="text-end">
+                                    {% if m.predicted_category == 'Non-Demented' %}
+                                        <span class="badge badge-nondemented">{{ m.predicted_category }}</span>
+                                    {% elif m.predicted_category == 'Very Mild Demented' %}
+                                        <span class="badge badge-verymild">{{ m.predicted_category }}</span>
+                                    {% elif m.predicted_category == 'Mild Demented' %}
+                                        <span class="badge badge-mild">{{ m.predicted_category }}</span>
+                                    {% else %}
+                                        <span class="badge badge-moderate">{{ m.predicted_category }}</span>
+                                    {% endif %}
+                                    <span class="small text-muted d-block mt-1">{{ (m.confidence * 100)|round(1) }}% conf</span>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center py-4 text-muted">No MRI scans logged yet.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cognitive Progression List -->
+    <div class="col-lg-6">
+        <div class="card card-clinical h-100">
+            <div class="card-header card-header-clean">
+                <i class="fa-solid fa-clipboard-check text-emerald me-2"></i> Historical Cognitive Assessments
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if cog_history %}
+                        {% for c in cog_history %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                <div>
+                                    <span class="fw-semibold text-navy d-block">Assessment #{{ c.assessment_id }}</span>
+                                    <span class="small text-muted">{{ c.assessment_date.strftime('%b %d, %Y') if c.assessment_date else 'Recent' }}</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold text-navy fs-6">{{ c.total_score }} / 30</span>
+                                    <span class="small text-muted d-block mt-1">
+                                        {% if c.total_score >= 26 %}Normal Performance
+                                        {% elif c.total_score >= 20 %}Mild Variation
+                                        {% elif c.total_score >= 14 %}Moderate Variation
+                                        {% else %}Substantial Variation{% endif %}
+                                    </span>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center py-4 text-muted">No cognitive assessments logged yet.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('longitudinalChart').getContext('2d');
+
+    // Labels from combined activities
+    const labels = ['Point 1', 'Point 2', 'Point 3', 'Point 4', 'Point 5'];
+    
+    const cogScores = {{ cog_scores | tojson }};
+    const pointLabels = {{ point_labels | tojson }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: pointLabels,
+            datasets: [
+                {
+                    label: 'Cognitive Score (0-30 pts)',
+                    data: cogScores,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    min: 0,
+                    max: 30,
+                    title: { display: true, text: 'Cognitive Score (Max 30)' }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
